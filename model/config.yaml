@@ -1,3 +1,4 @@
+# yamlファイルの記述の形式
 stft:
   nfft: 1024
   nhop: 256
