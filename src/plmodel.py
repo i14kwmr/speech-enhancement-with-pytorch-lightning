@@ -72,7 +72,7 @@ class VbdLitModel(LightningModule):  # モデル
 
     # Tensors are on GPU. Batch size is assumed to be 1
     def test_step(self, batch, batch_idx):
-        # lengthはどこから取得？
+        # pldataset.pyのcollate_fn_test関数由来
         noisy_wave, clean_wave, length = batch
 
         complex_spec_estimate = self.forward(noisy_wave)
