@@ -67,7 +67,7 @@ def main():
     cfg_path = pathlib.Path(args.cfg_path)
     cfg = OmegaConf.load(cfg_path.joinpath("config.yaml"))
 
-    # Datasetの定義
+    # Datasetの定義, Trainとは異なるDatasetを利用
     dataset = VbdTestDataset(args.data_dir)
 
     # Modelの定義 (保存したモデルの重みを読み込み)
