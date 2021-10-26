@@ -63,6 +63,7 @@ RUN pip install --no-cache-dir museval
 RUN pip install --no-cache-dir pesq
 RUN pip install --no-cache-dir torch_optimizer
 RUN pip install --no-cache-dir torchinfo
+RUN pip install --no-cache-dir omegaconf
 
 # User Setting
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
