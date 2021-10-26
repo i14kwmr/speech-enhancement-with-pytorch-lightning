@@ -8,6 +8,7 @@ from src.dataset import VbdDataset, VbdTestDataset
 
 
 # DataModule: daatloaderをまとめて記述（collate_fnも定義する）
+# 今回は信号を渡すように設定している．（STFTはネットワーク側でやる）
 class VbdDataModule(LightningDataModule):
     def __init__(
         self,
@@ -62,31 +63,31 @@ class VbdDataModule(LightningDataModule):
             num_workers=self.num_workers,
             # スレッド数（バッチを出すのに時間かかる場合は変更）
             # 0: そのまま, 1: マルチスレッド（plでは，1だとワーニングが出る？）
-            collate_fn=self.collate_fn_train,  # バッチに対する処理
+            collate_fn=self.collate_fn_train,  # バッチ (list?) に対する処理
         )
         return loader  # 戻り値の名前を統一
 
     def val_dataloader(self):  # 名前はval_dataloaderにしないとダメ（関数を上書きするため）
         loader = DataLoader(
-            self.valid_set,
+            self.valid_set,  #
             batch_size=self.batch_size,
-            shuffle=False,
-            drop_last=False,
+            shuffle=False,  #
+            drop_last=False,  #
             pin_memory=self.pin_memory,
             num_workers=self.num_workers,
-            collate_fn=self.collate_fn_valid,
+            collate_fn=self.collate_fn_valid,  #
         )
         return loader
 
     def test_dataloader(self):
         loader = DataLoader(
-            self.test_set,
+            self.test_set,  #
             batch_size=1,
-            shuffle=False,
-            drop_last=False,
+            shuffle=False,  #
+            drop_last=False,  #
             pin_memory=self.pin_memory,
             num_workers=self.num_workers,
-            collate_fn=self.collate_fn_test,
+            collate_fn=self.collate_fn_test,  #
         )
         return loader
 
@@ -133,9 +134,9 @@ class VbdDataModule(LightningDataModule):
         # Batch size is assumed to be 1
         noisy, clean = batch[0]
 
-        # STFTのシフト長の倍数になるよう0埋め
-        length = len(clean)
+        # STFTのシフト長の倍数になるよう0埋め（全てのデータを利用）
+        length = len(clean)  # 評価する際，iSTFTしたものをクリップするために準備
         npad = (length - self.nfft) // self.nhop * self.nhop + self.nfft - length
         noisy = F.pad(noisy, (0, npad))
         clean = F.pad(clean, (0, npad))
-        return noisy[None, :], clean[None, :], length  #
+        return noisy[None, :], clean[None, :], length
