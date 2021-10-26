@@ -145,3 +145,4 @@ dmypy.json
 
 # model dir
 lightning_logs/
+
