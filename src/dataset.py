@@ -8,7 +8,7 @@ import torchaudio
 class VbdDataset(torch.utils.data.Dataset):  # torch.utils.data.Datasetを継承
     def __init__(self, base_dir, mode="train"):
         # mode: train/valid/test
-        path = pathlib.Path(base_dir).joinpath(mode)
+        path = pathlib.Path(base_dir).joinpath(mode)  # [basedir]/[mode]/
         self.npy_names = np.sort(list(path.glob("*.npy")))  # 名前をsort
 
     def __len__(self):
