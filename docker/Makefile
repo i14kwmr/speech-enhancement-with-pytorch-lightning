@@ -3,19 +3,19 @@ GROUP_NAME = Domain
 HOST_PATH = '/home/$(USER_NAME)'
 CONTAINER_PATH = '/home/$(USER_NAME)'
 ROOT_PASSWORD = 'password'
-IMAGE_TAG = 'ymasuyama/pytorch-lightning'
+IMAGE_TAG = 'tkawamura/pytorch-lightning'
 EXPOSED_PORT = 8888
 
 all: ## build & run docker.
-	@make build
-	@make run
+    @make build
+    @make run
 
 build: ## build docker.
-	docker build -t $(IMAGE_TAG) ./
+    docker build -t $(IMAGE_TAG) ./
 
 run: ## run docker.
-	docker run -it --gpus all \
-	-e USER_NAME=$(USER_NAME) -e GROUP_NAME=$(GROUP_NAME) \
+    docker run -it --gpus all \
+    -e USER_NAME=$(USER_NAME) -e GROUP_NAME=$(GROUP_NAME) \
 	-e LOCAL_UID=$(shell id -u $(USER)) -e LOCAL_GID=$(shell id -g $(USER)) \
 	-p 8888:$(EXPOSED_PORT) \
 	-v $(HOST_PATH):$(CONTAINER_PATH) \
@@ -31,7 +31,7 @@ export STOPPED_DOCKER_CONTAINERS=`docker ps -a -q`
 
 clean-all: ## clean images & containers
 	-@make clean-images
-	-@make clean-containers
+    -@make clean-containers
 
 clean-images:  ## clean images whose tag is none
 	docker rmi $(NONE_DOCKER_IMAGES) -f
