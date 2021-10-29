@@ -130,6 +130,7 @@ dmypy.json
 .pyre/
 
 # Data
+dataset
 *.txt
 *.wav
 *.png
