@@ -74,7 +74,7 @@ class UNet(nn.Module):
         self.post_conv = nn.Sequential(
             nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1),
             nn.ReLU(),
-            nn.Conv2d(out_channels, 1, kernel_size=1, padding=0),
+            nn.Conv2d(out_channels, 2, kernel_size=1, padding=0),
             nn.Sigmoid(),
         )
 
@@ -113,4 +113,4 @@ class UNet(nn.Module):
 
         # Post process
         est_mask = self.post_conv(x)
-        return est_mask[:, 0, :nfreq, :nframe]
+        return est_mask[:, 0, :nfreq, :nframe], est_mask[:, 1, :nfreq, :nframe]

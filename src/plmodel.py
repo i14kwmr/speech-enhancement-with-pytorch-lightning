@@ -37,19 +37,22 @@ class VbdLitModel(LightningModule):  # モデル
         # STFTはGPU上でできるため，ここで処理
         complex_spec, normalized_magnitude = self.pre_process_on_gpu(wave)
         # UNetでマスクを推定
-        mask = self.model(normalized_magnitude[:, None, :, :])
-        return mask * complex_spec
+        mask1, mask2 = self.model(normalized_magnitude[:, None, :, :])
+        return mask1 * complex_spec, mask2 * complex_spec
 
     # 訓練ステップ，lossを必ず戻さないといけない．
     # pytorchlightningではlossを戻すだけで良い（pytorchではloss.backward等の処理が必要）
     def training_step(self, batch, batch_idx):
         noisy_wave, clean_wave = batch  # Tensors are on GPU.
-        complex_spec_estimate = self.forward(noisy_wave)
+        complex_spec_estimate1, complex_spec_estimate2 = self.forward(noisy_wave)
 
         complex_spec_clean = self.stft(clean_wave)
 
         # psa: 2つの複素数の差の絶対値の平均 (metrics.py)
-        loss = psa(complex_spec_clean, complex_spec_estimate)
+        loss1 = psa(complex_spec_clean, complex_spec_estimate1)
+        loss2 = psa(complex_spec_clean, complex_spec_estimate2)
+
+        loss = torch.max(loss1, loss2)
 
         self.log("train_loss", loss)  # 持ってorderdictに記録
         return loss  # 戻り値はlossのみ
@@ -57,10 +60,13 @@ class VbdLitModel(LightningModule):  # モデル
     # 検証ステップ，訓練ステップとの違いは戻り値（validation_epoch_end）
     def validation_step(self, batch, batch_idx):
         noisy_wave, clean_wave = batch  # Tensors are on GPU.
-        complex_spec_estimate = self.forward(noisy_wave)
+        complex_spec_estimate1, complex_spec_estimate2 = self.forward(noisy_wave)
 
         complex_spec_clean = self.stft(clean_wave)
-        valid_loss = psa(complex_spec_clean, complex_spec_estimate)
+        valid_loss1 = psa(complex_spec_clean, complex_spec_estimate1)
+        valid_loss2 = psa(complex_spec_clean, complex_spec_estimate2)
+
+        valid_loss = torch.max(valid_loss1, valid_loss2)
 
         self.log("valid_loss", valid_loss)
         return valid_loss.item()  # torch.Tensor -> 組み込み型
@@ -75,17 +81,20 @@ class VbdLitModel(LightningModule):  # モデル
         # lengthはどこから取得？
         noisy_wave, clean_wave, length = batch
 
-        complex_spec_estimate = self.forward(noisy_wave)
-        estimate_wave = self.istft(complex_spec_estimate)
+        complex_spec_estimate1, complex_spec_estimate2 = self.forward(noisy_wave)
+        estimate_wave1 = self.istft(complex_spec_estimate1)
+        estimate_wave2 = self.istft(complex_spec_estimate2)
 
         clean_wave = clean_wave[0, :length]
         noisy_wave = noisy_wave[0, :length]
-        estimate_wave = estimate_wave[0, :length]
+        estimate_wave1 = estimate_wave1[0, :length]
+        estimate_wave2 = estimate_wave2[0, :length]
 
         # 評価指標 (SISDR) の計算
-        sisdri = (
-            sisdr(clean_wave, estimate_wave) - sisdr(clean_wave, noisy_wave)
-        ).item()
+        sisdri1 = sisdr(clean_wave, estimate_wave1) - sisdr(clean_wave, noisy_wave)
+        sisdri2 = sisdr(clean_wave, estimate_wave2) - sisdr(clean_wave, noisy_wave)
+
+        sisdri = torch.max(sisdri1, sisdri2).item()
 
         self.log("test_sisdri", sisdri, prog_bar=True)
         return sisdri
