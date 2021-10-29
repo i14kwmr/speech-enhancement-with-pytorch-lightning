@@ -146,3 +146,5 @@ dataset
 
 # model dir
 lightning_logs/
+
+.DS_Store
