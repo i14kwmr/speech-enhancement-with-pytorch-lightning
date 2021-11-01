@@ -58,7 +58,7 @@ class VbdLitModel(LightningModule):  # モデル
             complex_spec_source2, complex_spec_estimate1
         )
 
-        loss = torch.max(loss1, loss2)
+        loss = torch.min(loss1, loss2)
 
         self.log("train_loss", loss)  # 持ってorderdictに記録
         return loss  # 戻り値はlossのみ
@@ -78,7 +78,7 @@ class VbdLitModel(LightningModule):  # モデル
             complex_spec_source2, complex_spec_estimate1
         )
 
-        valid_loss = torch.max(valid_loss1, valid_loss2)
+        valid_loss = torch.min(valid_loss1, valid_loss2)
 
         self.log("valid_loss", valid_loss)
         return valid_loss.item()  # torch.Tensor -> 組み込み型
