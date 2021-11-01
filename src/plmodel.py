@@ -105,14 +105,12 @@ class VbdLitModel(LightningModule):  # モデル
 
         # 評価指標 (SISDR) の計算
         sisdri1 = (
-            sisdr(source1_wave, estimate_wave1) - sisdr(source1_wave, mixture_wave)
-        ) + (
-            sisdr(source2_wave, estimate_wave2) - sisdr(source2_wave, mixture_wave)
+            (sisdr(source1_wave, estimate_wave1) - sisdr(source1_wave, mixture_wave))
+            + (sisdr(source2_wave, estimate_wave2) - sisdr(source2_wave, mixture_wave))
         ) / 2
         sisdri2 = (
-            sisdr(source1_wave, estimate_wave2) - sisdr(source1_wave, mixture_wave)
-        ) + (
-            sisdr(source2_wave, estimate_wave1) - sisdr(source2_wave, mixture_wave)
+            (sisdr(source1_wave, estimate_wave2) - sisdr(source1_wave, mixture_wave))
+            + (sisdr(source2_wave, estimate_wave1) - sisdr(source2_wave, mixture_wave))
         ) / 2
 
         sisdri = torch.max(sisdri1, sisdri2).item()
