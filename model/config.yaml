@@ -12,5 +12,5 @@ optim:
   batch_size: 32
 
 data:
-  base_dir: './data/'
+  base_dir: './data/wsj02mix'
   siglen: 32512
