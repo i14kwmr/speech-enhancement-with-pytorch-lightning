@@ -43,14 +43,20 @@ class VbdLitModel(LightningModule):  # モデル
     # 訓練ステップ，lossを必ず戻さないといけない．
     # pytorchlightningではlossを戻すだけで良い（pytorchではloss.backward等の処理が必要）
     def training_step(self, batch, batch_idx):
-        noisy_wave, clean_wave = batch  # Tensors are on GPU.
-        complex_spec_estimate1, complex_spec_estimate2 = self.forward(noisy_wave)
+        mixture_wave, source1_wave, source2_wave = batch  # Tensors are on GPU.
+        complex_spec_estimate1, complex_spec_estimate2 = self.forward(mixture_wave)
 
-        complex_spec_clean = self.stft(clean_wave)
+        complex_spec_source1 = self.stft(source1_wave)
+        complex_spec_source2 = self.stft(source2_wave)
 
         # psa: 2つの複素数の差の絶対値の平均 (metrics.py)
-        loss1 = psa(complex_spec_clean, complex_spec_estimate1)
-        loss2 = psa(complex_spec_clean, complex_spec_estimate2)
+        # pit: permutation invariant training
+        loss1 = psa(complex_spec_source1, complex_spec_estimate1) + psa(
+            complex_spec_source2, complex_spec_estimate2
+        )
+        loss2 = psa(complex_spec_source1, complex_spec_estimate2) + psa(
+            complex_spec_source2, complex_spec_estimate1
+        )
 
         loss = torch.max(loss1, loss2)
 
@@ -59,12 +65,18 @@ class VbdLitModel(LightningModule):  # モデル
 
     # 検証ステップ，訓練ステップとの違いは戻り値（validation_epoch_end）
     def validation_step(self, batch, batch_idx):
-        noisy_wave, clean_wave = batch  # Tensors are on GPU.
-        complex_spec_estimate1, complex_spec_estimate2 = self.forward(noisy_wave)
+        mixture_wave, source1_wave, source2_wave = batch  # Tensors are on GPU.
+        complex_spec_estimate1, complex_spec_estimate2 = self.forward(mixture_wave)
 
-        complex_spec_clean = self.stft(clean_wave)
-        valid_loss1 = psa(complex_spec_clean, complex_spec_estimate1)
-        valid_loss2 = psa(complex_spec_clean, complex_spec_estimate2)
+        complex_spec_source1 = self.stft(source1_wave)
+        complex_spec_source2 = self.stft(source2_wave)
+
+        valid_loss1 = psa(complex_spec_source1, complex_spec_estimate1) + psa(
+            complex_spec_source2, complex_spec_estimate2
+        )
+        valid_loss2 = psa(complex_spec_source1, complex_spec_estimate2) + psa(
+            complex_spec_source2, complex_spec_estimate1
+        )
 
         valid_loss = torch.max(valid_loss1, valid_loss2)
 
@@ -79,20 +91,29 @@ class VbdLitModel(LightningModule):  # モデル
     # Tensors are on GPU. Batch size is assumed to be 1
     def test_step(self, batch, batch_idx):
         # lengthはどこから取得？
-        noisy_wave, clean_wave, length = batch
+        mixture_wave, source1_wave, source2_wave, length = batch
 
-        complex_spec_estimate1, complex_spec_estimate2 = self.forward(noisy_wave)
+        complex_spec_estimate1, complex_spec_estimate2 = self.forward(mixture_wave)
         estimate_wave1 = self.istft(complex_spec_estimate1)
         estimate_wave2 = self.istft(complex_spec_estimate2)
 
-        clean_wave = clean_wave[0, :length]
-        noisy_wave = noisy_wave[0, :length]
+        source1_wave = source1_wave[0, :length]
+        source2_wave = source2_wave[0, :length]
+        mixture_wave = mixture_wave[0, :length]
         estimate_wave1 = estimate_wave1[0, :length]
         estimate_wave2 = estimate_wave2[0, :length]
 
         # 評価指標 (SISDR) の計算
-        sisdri1 = sisdr(clean_wave, estimate_wave1) - sisdr(clean_wave, noisy_wave)
-        sisdri2 = sisdr(clean_wave, estimate_wave2) - sisdr(clean_wave, noisy_wave)
+        sisdri1 = (
+            sisdr(source1_wave, estimate_wave1) - sisdr(source1_wave, mixture_wave)
+        ) + (
+            sisdr(source2_wave, estimate_wave2) - sisdr(source2_wave, mixture_wave)
+        ) / 2
+        sisdri2 = (
+            sisdr(source1_wave, estimate_wave2) - sisdr(source1_wave, mixture_wave)
+        ) + (
+            sisdr(source2_wave, estimate_wave1) - sisdr(source2_wave, mixture_wave)
+        ) / 2
 
         sisdri = torch.max(sisdri1, sisdri2).item()
 
