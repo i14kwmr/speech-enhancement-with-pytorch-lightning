@@ -7,8 +7,8 @@ from pytorch_lightning import LightningDataModule
 from src.dataset import VbdDataset, VbdTestDataset
 
 
-# DataModule: daatloaderをまとめて記述（collate_fnも定義する）
-class VbdDataModule(LightningDataModule):
+# DataModule: dataloaderをまとめて記述（collate_fnも定義する）
+class VbdDataModule(LightningDataModule):  # 名前をWsj02mixにしたい
     def __init__(
         self,
         base_dir,
@@ -46,7 +46,7 @@ class VbdDataModule(LightningDataModule):
         # test: テスト（？），今回は [base_dir]/valid からロードしている．
         if stage == "test" or stage is None:
             # Testing with a "real" test set should only be run once. Here, we used the validation set.
-            self.test_set = VbdDataset(self.base_dir, mode="valid")
+            self.test_set = VbdDataset(self.base_dir, mode="test")
 
     # dataloader: データをまとめたバッチを出力する．（必須）
 
@@ -96,46 +96,64 @@ class VbdDataModule(LightningDataModule):
     def collate_fn_train(self, batch):  # 訓練ステップ，位置はランダムにしている
         # 長さを揃える
         siglen = self.siglen  # 統一する長さ
-        noisy_list = []
-        clean_list = []
+        mixture_list = []
+        source1_list = []
+        source2_list = []
         # バッチにあるnoisyとcleanの長さを揃える．
-        for noisy, clean in batch:
-            if len(clean) > siglen:  # クリップ（siglenより短い場合）
-                start_idx = np.random.randint(0, len(clean) - siglen)  # ランダムな位置から切り出し
+        for mixture, source1, source2 in batch:
+            if len(mixture) > siglen:  # クリップ（siglenより短い場合）
+                start_idx = np.random.randint(0, len(mixture) - siglen)  # ランダムな位置から切り出し
                 # listにおける+はappendと同義
-                noisy_list += [noisy[start_idx : start_idx + siglen]]
-                clean_list += [clean[start_idx : start_idx + siglen]]
+                mixture_list += [mixture[start_idx : start_idx + siglen]]
+                source1_list += [source1[start_idx : start_idx + siglen]]
+                source2_list += [source2[start_idx : start_idx + siglen]]
 
             else:  # 0埋め（siglenより長い場合）
-                noisy_list += [F.pad(noisy, (0, siglen - len(clean)))]
-                clean_list += [F.pad(clean, (0, siglen - len(clean)))]
+                mixture_list += [F.pad(mixture, (0, siglen - len(mixture)))]
+                source1_list += [F.pad(source1, (0, siglen - len(source1)))]
+                source2_list += [F.pad(source2, (0, siglen - len(source2)))]
 
-        return torch.stack(noisy_list), torch.stack(clean_list)  # stackでtorchに書き換え
+        return (
+            torch.stack(mixture_list),
+            torch.stack(source1_list),
+            torch.stack(source2_list),
+        )  # stackでtorchに書き換え
 
     def collate_fn_valid(self, batch):  # 検証ステップ，目安が変わると良くないため位置は固定
         siglen = self.siglen
 
-        noisy_list = []
-        clean_list = []
-        for noisy, clean in batch:
-            if len(clean) > siglen:
+        mixture_list = []
+        source1_list = []
+        source2_list = []
+        for mixture, source1, source2 in batch:
+            if len(mixture) > siglen:
                 start_idx = 0  # 固定
-                noisy_list += [noisy[start_idx : start_idx + siglen]]  # 固定した位置から切り出し
-                clean_list += [clean[start_idx : start_idx + siglen]]
+                mixture_list += [
+                    mixture[start_idx : start_idx + siglen]
+                ]  # 固定した位置から切り出し
+                source1_list += [source1[start_idx : start_idx + siglen]]
+                source2_list += [source2[start_idx : start_idx + siglen]]
 
             else:
-                noisy_list += [F.pad(noisy, (0, siglen - len(clean)))]
-                clean_list += [F.pad(clean, (0, siglen - len(clean)))]
+                mixture_list += [F.pad(mixture, (0, siglen - len(mixture)))]
+                source1_list += [F.pad(source1, (0, siglen - len(source1)))]
+                source2_list += [F.pad(source2, (0, siglen - len(source2)))]
 
-        return torch.stack(noisy_list), torch.stack(clean_list)
+        return (
+            torch.stack(mixture_list),
+            torch.stack(source1_list),
+            torch.stack(source2_list),
+        )
 
     def collate_fn_test(self, batch):  # テストステップ，バッチは1つずつ読み出し
         # Batch size is assumed to be 1
-        noisy, clean = batch[0]
+        mixture, source1, source2 = batch[0]
 
         # STFTのシフト長の倍数になるよう0埋め
-        length = len(clean)
+        length = len(mixture)
         npad = (length - self.nfft) // self.nhop * self.nhop + self.nfft - length
-        noisy = F.pad(noisy, (0, npad))
-        clean = F.pad(clean, (0, npad))
-        return noisy[None, :], clean[None, :], length  #
+        mixture = F.pad(mixture, (0, npad))
+        source1 = F.pad(source1, (0, npad))
+        source2 = F.pad(source2, (0, npad))
+
+        return mixture[None, :], source1[None, :], source2[None, :], length  #
