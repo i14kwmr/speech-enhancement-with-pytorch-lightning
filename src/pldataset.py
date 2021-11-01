@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from pytorch_lightning import LightningDataModule
 
-from src.dataset import VbdDataset, VbdTestDataset
+from src.dataset import Wsj02mixDataset, VbdDataset, VbdTestDataset
 
 
 # DataModule: dataloaderをまとめて記述（collate_fnも定義する）
@@ -36,17 +36,17 @@ class VbdDataModule(LightningDataModule):  # 名前をWsj02mixにしたい
     def setup(self, stage=None):  # 必須．setup関数
         # fit: 学習（？）
         if stage == "fit" or stage is None:
-            self.train_set = VbdDataset(self.base_dir, mode="train")  # [base_dir]/train
-            self.valid_set = VbdDataset(self.base_dir, mode="valid")  # [base_dir]/valid
+            self.train_set = Wsj02mixDataset(self.base_dir, mode="train")  # [base_dir]/train
+            self.valid_set = Wsj02mixDataset(self.base_dir, mode="valid")  # [base_dir]/valid
 
         # validate: 検証（？）
         if stage == "validate" or stage is None:
-            self.valid_set = VbdDataset(self.base_dir, mode="valid")
+            self.valid_set = Wsj02mixDataset(self.base_dir, mode="valid")
 
         # test: テスト（？），今回は [base_dir]/valid からロードしている．
         if stage == "test" or stage is None:
             # Testing with a "real" test set should only be run once. Here, we used the validation set.
-            self.test_set = VbdDataset(self.base_dir, mode="test")
+            self.test_set = Wsj02mixDataset(self.base_dir, mode="test")
 
     # dataloader: データをまとめたバッチを出力する．（必須）
 
