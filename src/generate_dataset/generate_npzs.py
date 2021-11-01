@@ -15,15 +15,17 @@ import soundfile as sf
 # 6->500 ただ，処理スピード1/2となるわけではない．
 def make_dataset(base_path, fnames, save_path):
     for fname in tqdm(fnames):
-        noisy, _ = sf.read(base_path.joinpath("noisy_trainset_wav", fname))
-        clean, _ = sf.read(base_path.joinpath("clean_trainset_wav", fname))
+        mixture, _ = sf.read(base_path.joinpath("mix", fname))
+        source1, _ = sf.read(base_path.joinpath("s1", fname))
+        source2, _ = sf.read(base_path.joinpath("s2", fname))
 
         npy_name = (
             pathlib.Path(save_path).joinpath(fname).with_suffix(".npy")
         )  # numpyのbinデータ
         with open(npy_name, "wb") as f:  #
-            np.save(f, noisy.astype(np.float32))  # float64->float32
-            np.save(f, clean.astype(np.float32))
+            np.save(f, mixture.astype(np.float32))  # float64->float32
+            np.save(f, source1.astype(np.float32))
+            np.save(f, source2.astype(np.float32))
 
 
 def main():
@@ -31,27 +33,21 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("base_data_dir", type=str)
     parser.add_argument("base_save_dir", type=str)
-    parser.add_argument("--num_train_ratio", type=float, default=0.8)
+    parser.add_argument("--num_train_ratio", type=float, default=0.8) # not use
     args = parser.parse_args()
+    
+    mode_dict = {"train":"tr", "valid":"cv", "test":"tt"}
 
-    # Prepare file names
-    base_path = pathlib.Path(args.base_data_dir)
-    clean_path = base_path.joinpath("clean_trainset_wav")
-    fnames = np.sort([fname.parts[-1] for fname in clean_path.glob("*.wav")])
-    fnames = np.random.permutation(fnames)
+    for mode in ["train", "valid", "test"]:
+        # Prepare file names
+        base_path = pathlib.Path(args.base_data_dir + "/" + mode_dict[mode])
+        mixture_path = base_path.joinpath("mix")
+        fnames = np.sort([fname.parts[-1] for fname in mixture_path.glob("*.wav")])
 
-    # Split dataset
-    tmp = int(len(fnames) * args.num_train_ratio)
-    train_fnames = fnames[:tmp]
-    valid_fnames = fnames[tmp:]
-
-    # Run make_dataset
-    make_dataset(
-        base_path, fnames=train_fnames, save_path=args.base_save_dir + "/train"
-    )
-    make_dataset(
-        base_path, fnames=valid_fnames, save_path=args.base_save_dir + "/valid"
-    )
+        # Run make_dataset
+        make_dataset(
+            base_path, fnames=fnames, save_path=args.base_save_dir + "/" + mode
+        )
 
 
 if __name__ == "__main__":
