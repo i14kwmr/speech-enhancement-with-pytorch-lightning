@@ -4,6 +4,29 @@ import torch
 import torchaudio
 
 
+class Wsj02mixDataset(torch.utils.data.Dataset):  # torch.utils.data.Datasetを継承
+    def __init__(self, base_dir, mode="train"):
+        # mode: train/valid/test
+        path = pathlib.Path(base_dir).joinpath(mode)
+        self.npy_names = np.sort(list(path.glob("*.npy")))  # 名前をsort
+
+    def __len__(self):
+        return len(self.npy_names)  # len()の戻り値
+
+    def __getitem__(self, idx):
+        with open(self.npy_names[idx], "rb") as f:
+            # load file (.npy), rb: read binary
+            mixture = np.load(f)
+            source1 = np.load(f)
+            source2 = np.load(f)
+
+        # numpy -> torch
+        mixture = torch.from_numpy(mixture)
+        source1 = torch.from_numpy(source1)
+        source2 = torch.from_numpy(source2)
+        return mixture, source1, source2  # 参照の戻り値z
+
+
 # seedについて固定・確認
 class VbdDataset(torch.utils.data.Dataset):  # torch.utils.data.Datasetを継承
     def __init__(self, base_dir, mode="train"):
