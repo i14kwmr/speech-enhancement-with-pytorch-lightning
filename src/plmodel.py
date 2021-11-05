@@ -1,24 +1,21 @@
 import functools
-from collections import OrderedDict
 
 import numpy as np
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from torch.utils.data import DataLoader
 import torch.optim as optim
 from pytorch_lightning import LightningModule
 
-from src.model import UNet
-from src.utils.scheduler import CosineWarmupScheduler
 from src.metrics import psa, sisdr
+from src.models.blstm import BiLSTM2SPK
+from src.models.unet import UNet
+from src.utils.scheduler import CosineWarmupScheduler
 
 
 class VbdLitModel(LightningModule):  # モデル
     def __init__(self, model_hparams, optimizer_hparams, stft_hparams):
         super().__init__()
         self.save_hyperparameters()
-        self.model = UNet()  # モデルの登録
+        self.model = BiLSTM2SPK()  # モデルの登録
         self.stft = functools.partial(
             torch.stft,
             n_fft=stft_hparams.nfft,
