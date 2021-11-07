@@ -15,7 +15,9 @@ class VbdLitModel(LightningModule):  # モデル
     def __init__(self, model_hparams, optimizer_hparams, stft_hparams):
         super().__init__()
         self.save_hyperparameters()
-        self.model = BiLSTM2SPK()  # モデルの登録
+        self.model = BiLSTM2SPK(
+            stft_hparams.nfft // 2, stft_hparams.nfft // 2
+        )  # モデルの登録
         self.stft = functools.partial(
             torch.stft,
             n_fft=stft_hparams.nfft,
@@ -32,6 +34,7 @@ class VbdLitModel(LightningModule):  # モデル
     # 順伝搬．どこまで書くかを自分で決める（lossを取る対象によって戻り値を変更）
     def forward(self, wave):
         # STFTはGPU上でできるため，ここで処理
+        # shape = (n_batch, n_channel, n_freq, n_frame)
         complex_spec, normalized_magnitude = self.pre_process_on_gpu(wave)
         # UNetでマスクを推定
         mask1, mask2 = self.model(normalized_magnitude[:, None, :, :])
