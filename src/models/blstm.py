@@ -6,6 +6,8 @@ class BiLSTM2SPK(nn.Module):
     def __init__(
         self, input_dim, output_dim, hidden_dim=300, num_layers=4, dropout=0.3
     ):
+        # input_dim : 入力の最終次元，今回はn_bin
+        # output_dim: 出力の次元，今回はn_binにしておく．
 
         super(BiLSTM2SPK, self).__init__()
         self.output_dim = output_dim
@@ -35,11 +37,16 @@ class BiLSTM2SPK(nn.Module):
                 torch.nn.init.zeros_(param)
 
     def forward(self, x):
-        x = x.permute(0, 2, 1)
-        batch_size, frame_length, _ = x.size()
+        # (n_batch, n_channel, n_freq, n_frame)
+
+        # (n_batch, n_channel, n_frame, n_freq)
+        x = x.permute(0, 1, 3, 2)  # masksと対応取った
+        batch_size, _, nframe, nfreq = x.size()
         rnn_output, _ = self.rnn(x)
         masks = self.fc(rnn_output)
         masks = torch.sigmoid(masks)
-        masks = masks.reshape(batch_size, frame_length, self.output_dim, 2)
-        masks = masks.permute(0, 2, 1, 3)
-        return masks[..., 0], masks[..., 1]
+        masks = masks.reshape(batch_size, 2, nframe, self.output_dim)
+        # (n_batch, n_channel, n_freq, n_frame)
+        masks = masks.permute(0, 1, 3, 2)
+
+        return masks[:, 0, :nfreq, :nframe], masks[:, 1, :nfreq, :nframe]
