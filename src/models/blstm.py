@@ -40,13 +40,17 @@ class BiLSTM2SPK(nn.Module):
         # (n_batch, n_channel, n_freq, n_frame)
 
         # (n_batch, n_channel, n_frame, n_freq)
-        x = x.permute(0, 1, 3, 2)  # masksと対応取った
-        batch_size, _, nframe, nfreq = x.size()
-        rnn_output, _ = self.rnn(x)
+        # x = x.permute(0, 1, 3, 2)  # masksと対応取った
+        # batch_size, _, nframe, nfreq = x.size()
+        batch_size, _, nfreq, nframe = x.size()
+        rnn_output, _ = self.rnn(x[:,0,:,:])
         masks = self.fc(rnn_output)
         masks = torch.sigmoid(masks)
-        masks = masks.reshape(batch_size, 2, nframe, self.output_dim)
+        # masks = masks.reshape(batch_size, 2, nframe, self.output_dim)
+        masks = masks.reshape(batch_size, nfreq, self.output_dim,  2)
         # (n_batch, n_channel, n_freq, n_frame)
-        masks = masks.permute(0, 1, 3, 2)
+        # masks = masks.permute(0, 1, 3, 2)
+        # masks = masks.permute(0, 2, 1, 3)
 
-        return masks[:, 0, :nfreq, :nframe], masks[:, 1, :nfreq, :nframe]
+        # return masks[:, 0, :nfreq, :nframe], masks[:, 1, :nfreq, :nframe]
+        return masks[..., 0], masks[..., 1]
