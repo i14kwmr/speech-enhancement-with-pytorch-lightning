@@ -1,9 +1,9 @@
 import argparse
 import pathlib
-from tqdm import tqdm
 
 import numpy as np
 import soundfile as sf
+from tqdm import tqdm
 
 
 # タスク依存なフェーズ，一番大変
@@ -33,10 +33,10 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("base_data_dir", type=str)
     parser.add_argument("base_save_dir", type=str)
-    parser.add_argument("--num_train_ratio", type=float, default=0.8) # not use
+    parser.add_argument("--num_train_ratio", type=float, default=0.8)  # not use
     args = parser.parse_args()
-    
-    mode_dict = {"train":"tr", "valid":"cv", "test":"tt"}
+
+    mode_dict = {"train": "tr", "valid": "cv", "test": "tt"}
 
     for mode in ["train", "valid", "test"]:
         # Prepare file names
