@@ -16,8 +16,7 @@ class VbdLitModel(LightningModule):  # モデル
         super().__init__()
         self.save_hyperparameters()
         self.model = BiLSTM2SPK(
-        #    stft_hparams.nfft // 2 + 1, stft_hparams.nfft // 2 + 1
-            128, 128
+            stft_hparams.nfft // 2 + 1, stft_hparams.nfft // 2 + 1
         )  # モデルの登録
         self.stft = functools.partial(
             torch.stft,
